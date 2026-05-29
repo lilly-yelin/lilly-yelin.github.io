@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>실시간 투표 진행중</title>
+  <style>
+    :root {
+      --bg: #eff6ff;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --bar-bg: #e2e8f0;
+      --shadow: rgba(15, 23, 42, 0.12);
+      --accent1: #fbbf24;
+      --accent2: #60a5fa;
+      --accent3: #f472b6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Apple SD Gothic Neo", Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top, #dbeafe 0%, #eff6ff 40%, #ffffff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: min(980px, 100%);
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 24px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+      overflow: hidden;
+    }
+
+    header {
+      padding: 28px 32px;
+      text-align: center;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(2rem, 3vw, 3.2rem);
+      letter-spacing: -0.04em;
+      color: #ec4899;
+      font-family: "HumanMoemungT", "휴먼모음T", "Apple SD Gothic Neo", Arial, sans-serif;
+      text-shadow: 1px 1px 0 rgba(249, 115, 22, 0.14);
+    }
+
+    header p {
+      margin: 14px auto 0;
+      max-width: 700px;
+      color: #7c3aed;
+      line-height: 1.8;
+      font-family: "HumanMoemungT", "휴먼모음T", "Apple SD Gothic Neo", Arial, sans-serif;
+      font-size: 1.05rem;
+    }
+
+    .stats {
+      display: grid;
+      gap: 20px;
+      padding: 28px 32px 16px;
+      justify-items: center;
+      text-align: center;
+      align-items: center;
+    }
+
+    .total {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: rgba(59, 130, 246, 0.12);
+      border-radius: 18px;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      width: fit-content;
+      font-weight: 600;
+      color: #1e3a8a;
+    }
+
+    .candidate-card {
+      display: grid;
+      gap: 18px;
+      padding: 24px 32px 32px;
+    }
+
+    .candidate {
+      display: grid;
+      gap: 12px;
+      padding: 24px;
+      background: #ffffff;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 22px;
+      box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+      transform-style: preserve-3d;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .candidate:hover {
+      transform: translateY(-10px) rotateX(2deg) rotateY(2deg);
+      box-shadow: 0 30px 75px rgba(59, 130, 246, 0.25);
+    }
+
+    .candidate-image {
+      position: relative;
+      width: 100%;
+      min-height: 220px;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #f8fafc;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+      box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.12);
+    }
+
+    .candidate-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: brightness(1.05) saturate(1.15);
+    }
+
+    .candidate strong {
+      font-size: 1.15rem;
+    }
+
+    .candidate-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .candidate-header .candidate-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .icon-button {
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.68);
+      color: rgba(15, 23, 42, 0.8);
+      padding: 4px 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: none;
+      transition: opacity 0.2s ease, background 0.2s ease;
+      opacity: 0.75;
+    }
+
+    .icon-button:hover {
+      opacity: 1;
+      background: rgba(248, 250, 252, 0.9);
+    }
+
+    .image-edit-overlay {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      border: none;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.82);
+      color: rgba(15, 23, 42, 0.85);
+      padding: 6px 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      opacity: 0.78;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .image-edit-overlay:hover {
+      opacity: 1;
+      transform: translateY(-1px);
+    }
+
+    .count-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+    }
+
+    .bar-wrap {
+      position: relative;
+      height: 42px;
+      border-radius: 24px;
+      background: var(--bar-bg);
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+    }
+
+    .bar-fill {
+      position: absolute;
+      inset: 0;
+      width: 0;
+      display: flex;
+      align-items: center;
+      padding-left: 18px;
+      color: #fff;
+      font-weight: 700;
+      transition: width 0.5s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+      transform-origin: left center;
+      overflow: hidden;
+    }
+
+    .bar-fill::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18), transparent 45%);
+      mix-blend-mode: screen;
+    }
+
+    .bar-fill span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .bar-accent-1 { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+    .bar-accent-2 { background: linear-gradient(135deg, #38bdf8, #0ea5e9); }
+    .bar-accent-3 { background: linear-gradient(135deg, #d946ef, #9333ea); }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .actions button {
+      border: none;
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: 700;
+      transition: box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+      box-shadow: 0 18px 30px rgba(0,0,0,0.16);
+    }
+
+    .actions button:hover:not(:disabled) {
+      box-shadow: 0 22px 36px rgba(0,0,0,0.18);
+    }
+
+    .vote { background: #10b981; color: white; }
+    .cancel { background: #ef4444; color: white; }
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .candidate.selected {
+      border-color: #34d399;
+      box-shadow: 0 25px 50px rgba(16, 185, 129, 0.18);
+    }
+
+    .countdown {
+      font-size: 1rem;
+      padding: 14px 20px;
+      border-radius: 18px;
+      background: rgba(249, 115, 22, 0.08);
+      color: #c2410c;
+      border: 1px solid rgba(249, 115, 22, 0.22);
+      width: fit-content;
+    }
+
+    .result-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .deadline-editor {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 10px;
+      width: 100%;
+      font-size: 0.9rem;
+      color: #475569;
+    }
+
+    .deadline-editor label {
+      font-weight: 500;
+      color: #475569;
+      white-space: nowrap;
+    }
+
+    .deadline-editor input {
+      min-width: 210px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 0.88rem;
+      color: #334155;
+      background: #f8fafc;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+
+    .deadline-editor button {
+      border: 1px solid rgba(67, 56, 202, 0.14);
+      border-radius: 12px;
+      padding: 10px 14px;
+      background: rgba(67, 56, 202, 0.12);
+      color: #4338ca;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .deadline-editor button:hover {
+      background: rgba(67, 56, 202, 0.18);
+      border-color: rgba(67, 56, 202, 0.23);
+      transform: translateY(-1px);
+    }
+
+    #resultButton {
+      border: none;
+      border-radius: 16px;
+      padding: 14px 20px;
+      background: #4338ca;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 18px 30px rgba(67, 56, 202, 0.18);
+      transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+    }
+
+    #resultButton:hover:not(:disabled) {
+      transform: translateY(-1px);
+      background: #3730a3;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.7);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      overflow: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+      z-index: 1000;
+    }
+
+    .overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .popup {
+      width: min(480px, 100%);
+      background: white;
+      border-radius: 28px;
+      padding: 32px 28px;
+      text-align: center;
+      box-shadow: 0 35px 90px rgba(15, 23, 42, 0.2);
+      position: relative;
+      overflow: visible;
+      animation: pop 0.3s ease;
+      z-index: 1;
+    }
+
+    .celebration {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .confetti {
+      position: absolute;
+      width: 11px;
+      height: 18px;
+      border-radius: 4px;
+      opacity: 0;
+      transform-origin: center;
+      animation: confetti 1.6s ease-out forwards;
+    }
+
+    .sparkle {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: radial-gradient(circle, #ffffff 20%, #fde68a 45%, transparent 55%);
+      border-radius: 50%;
+      filter: drop-shadow(0 0 12px rgba(255,255,255,0.85));
+      opacity: 0;
+      animation: sparkle 1.2s ease-out forwards;
+    }
+
+    @keyframes pop {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes confetti {
+      0% { transform: translateY(-24px) rotate(0deg); opacity: 1; }
+      35% { opacity: 1; }
+      100% { transform: translateY(220vh) rotate(540deg); opacity: 0; }
+    }
+
+    @keyframes sparkle {
+      0% { transform: scale(0.2); opacity: 0; }
+      20% { opacity: 1; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .popup p {
+      margin: 0;
+      color: #475569;
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    .popup button {
+      margin-top: 24px;
+      border: none;
+      border-radius: 16px;
+      background: #2563eb;
+      color: white;
+      padding: 14px 22px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    @media (min-width: 720px) {
+      .candidate-card {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .candidate {
+        min-height: 220px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>실시간 투표 진행중</h1>
+      <p>AI 최고 활용 우수자를 뽑아주세요!</p>
+    </header>
+    <section class="stats">
+      <div class="total">총 투표수: <span id="totalVotes">0</span></div>
+      <div class="countdown">투표 마감까지: <span id="countdown">--:--:--</span></div>
+      <div class="result-controls">
+        <button type="button" id="resultButton" disabled>투표 결과 보기</button>
+      </div>
+      <div class="deadline-editor">
+        <label for="deadlineInput">투표 마감일 수정</label>
+        <input id="deadlineInput" type="datetime-local" />
+        <button type="button" id="setDeadlineButton">적용</button>
+      </div>
+    </section>
+    <section class="candidate-card">
+      <article class="candidate" data-candidate="사과">
+        <div class="candidate-header">
+          <strong class="candidate-name">사과</strong>
+          <button type="button" class="icon-button" data-action="edit-name">✏</button>
+        </div>
+        <div class="candidate-image">
+          <img src="https://img.icons8.com/color/480/apple.png" alt="사과" />
+          <button type="button" class="image-edit-overlay" data-action="edit-image">📷</button>
+        </div>
+        <div class="count-row">
+          <div>득표수: <span class="vote-count">0</span></div>
+          <div><span class="percent">0%</span></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-fill bar-accent-1"><span>0%</span></div>
+        </div>
+        <div class="actions">
+          <button type="button" class="vote" data-action="vote">투표</button>
+          <button type="button" class="cancel" data-action="cancel">취소</button>
+        </div>
+        <p class="note">실시간으로 득표수가 변경됩니다.</p>
+      </article>
+      <article class="candidate" data-candidate="바나나">
+        <div class="candidate-header">
+          <strong class="candidate-name">바나나</strong>
+          <button type="button" class="icon-button" data-action="edit-name">✏</button>
+        </div>
+        <div class="candidate-image">
+          <img src="https://img.icons8.com/color/480/banana.png" alt="바나나" />
+          <button type="button" class="image-edit-overlay" data-action="edit-image">📷</button>
+        </div>
+        <div class="count-row">
+          <div>득표수: <span class="vote-count">0</span></div>
+          <div><span class="percent">0%</span></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-fill bar-accent-2"><span>0%</span></div>
+        </div>
+        <div class="actions">
+          <button type="button" class="vote" data-action="vote">투표</button>
+          <button type="button" class="cancel" data-action="cancel">취소</button>
+        </div>
+        <p class="note">취소 버튼으로 실시간으로 득표를 줄일 수 있습니다.</p>
+      </article>
+      <article class="candidate" data-candidate="딸기">
+        <div class="candidate-header">
+          <strong class="candidate-name">딸기</strong>
+          <button type="button" class="icon-button" data-action="edit-name">✏</button>
+        </div>
+        <div class="candidate-image">
+          <img src="https://img.icons8.com/color/480/strawberry.png" alt="딸기" />
+          <button type="button" class="image-edit-overlay" data-action="edit-image">📷</button>
+        </div>
+        <div class="count-row">
+          <div>득표수: <span class="vote-count">0</span></div>
+          <div><span class="percent">0%</span></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-fill bar-accent-3"><span>0%</span></div>
+        </div>
+        <div class="actions">
+          <button type="button" class="vote" data-action="vote">투표</button>
+          <button type="button" class="cancel" data-action="cancel">취소</button>
+        </div>
+        <p class="note">각 후보의 퍼센트는 실시간으로 바뀝니다.</p>
+      </article>
+    </section>
+  </div>
+  <div class="overlay" id="resultOverlay">
+    <div id="celebration" class="celebration" aria-hidden="true"></div>
+    <div class="popup">
+      <h2>🎉 축하합니다! 🎉</h2>
+      <p id="resultText">투표 결과를 확인하세요.</p>
+      <button type="button" id="closeOverlay">닫기</button>
+    </div>
+  </div>
+  <input type="file" id="imageUploadInput" accept="image/*" style="display:none" />
+  <script>
+    const candidates = {
+      "사과": 0,
+      "바나나": 0,
+      "딸기": 0,
+    };
+    const totalVotesEl = document.getElementById("totalVotes");
+    const cards = document.querySelectorAll(".candidate");
+    let votedCandidate = null;
+
+    function getTotalVotes() {
+      return Object.values(candidates).reduce((sum, value) => sum + value, 0);
+    }
+
+    function updateUI() {
+      const total = getTotalVotes();
+      totalVotesEl.textContent = total;
+      cards.forEach(card => {
+        const name = card.dataset.candidate;
+        const count = candidates[name];
+        const percent = total === 0 ? 0 : Math.round((count / total) * 100);
+        card.querySelector(".vote-count").textContent = count;
+        card.querySelectorAll(".percent").forEach(el => el.textContent = `${percent}%`);
+        const fill = card.querySelector(".bar-fill");
+        fill.style.width = `${percent}%`;
+      });
+      setVotingState();
+    }
+
+    const countdownEl = document.getElementById("countdown");
+    const resultButton = document.getElementById("resultButton");
+    const deadlineInput = document.getElementById("deadlineInput");
+    const setDeadlineButton = document.getElementById("setDeadlineButton");
+    const resultOverlay = document.getElementById("resultOverlay");
+    const resultText = document.getElementById("resultText");
+    const closeOverlayButton = document.getElementById("closeOverlay");
+    const celebrationContainer = document.getElementById("celebration");
+    const imageUploadInput = document.getElementById("imageUploadInput");
+    let currentImageCard = null;
+    let deadline = new Date(2026, 5, 5, 12, 0, 0, 0);
+
+    function createCelebration() {
+      celebrationContainer.innerHTML = "";
+      const colors = ["#f59e0b", "#f43f5e", "#22c55e", "#38bdf8", "#a855f7"];
+
+      for (let i = 0; i < 40; i += 1) {
+        const confetti = document.createElement("div");
+        confetti.className = "confetti";
+        const left = Math.random() * 95;
+        const top = Math.random() * 15;
+        const rotate = Math.random() * 360;
+        const delay = Math.random() * 0.4;
+        const color = colors[i % colors.length];
+        const width = 8 + Math.random() * 8;
+        const height = 14 + Math.random() * 14;
+        confetti.style.left = `${left}%`;
+        confetti.style.top = `${top}%`;
+        confetti.style.width = `${width}px`;
+        confetti.style.height = `${height}px`;
+        confetti.style.background = color;
+        confetti.style.transform = `rotate(${rotate}deg)`;
+        confetti.style.animationDelay = `${delay}s`;
+        celebrationContainer.appendChild(confetti);
+      }
+
+      for (let i = 0; i < 18; i += 1) {
+        const sparkle = document.createElement("div");
+        sparkle.className = "sparkle";
+        const left = Math.random() * 95;
+        const top = Math.random() * 60;
+        const delay = 0.1 + Math.random() * 0.4;
+        const size = 10 + Math.random() * 12;
+        sparkle.style.left = `${left}%`;
+        sparkle.style.top = `${top}%`;
+        sparkle.style.width = `${size}px`;
+        sparkle.style.height = `${size}px`;
+        sparkle.style.animationDelay = `${delay}s`;
+        celebrationContainer.appendChild(sparkle);
+      }
+
+      window.setTimeout(() => {
+        celebrationContainer.innerHTML = "";
+      }, 1800);
+    }
+
+    function editCandidateName(oldName, card) {
+      const newName = prompt("새 이름을 입력하세요:", oldName);
+      if (!newName) return;
+      const trimmed = newName.trim();
+      if (trimmed === "" || trimmed === oldName) return;
+      if (candidates[trimmed] !== undefined) {
+        alert("이미 존재하는 이름입니다.");
+        return;
+      }
+      const count = candidates[oldName];
+      delete candidates[oldName];
+      candidates[trimmed] = count;
+      card.dataset.candidate = trimmed;
+      card.querySelector(".candidate-name").textContent = trimmed;
+      if (votedCandidate === oldName) votedCandidate = trimmed;
+      updateUI();
+    }
+
+    function requestImageUpload(card) {
+      currentImageCard = card;
+      imageUploadInput.value = "";
+      imageUploadInput.click();
+    }
+
+    imageUploadInput.addEventListener("change", () => {
+      const file = imageUploadInput.files && imageUploadInput.files[0];
+      if (!file || !currentImageCard) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        currentImageCard.querySelector(".candidate-image img").src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function setVotingState() {
+      cards.forEach(card => {
+        const name = card.dataset.candidate;
+        const voteButton = card.querySelector('button[data-action="vote"]');
+        const cancelButton = card.querySelector('button[data-action="cancel"]');
+
+        if (votedCandidate === null) {
+          voteButton.disabled = false;
+          cancelButton.disabled = true;
+          card.classList.remove('selected');
+        } else if (votedCandidate === name) {
+          voteButton.disabled = true;
+          cancelButton.disabled = false;
+          card.classList.add('selected');
+        } else {
+          voteButton.disabled = true;
+          cancelButton.disabled = true;
+          card.classList.remove('selected');
+        }
+      });
+    }
+
+    function formatTime(value) {
+      return value.toString().padStart(2, "0");
+    }
+
+    function toLocalDatetimeInputValue(date) {
+      const tzOffset = date.getTimezoneOffset();
+      const localDate = new Date(date.getTime() - tzOffset * 60000);
+      return localDate.toISOString().slice(0, 16);
+    }
+
+    function updateDeadlineInput() {
+      deadlineInput.value = toLocalDatetimeInputValue(deadline);
+    }
+
+    setDeadlineButton.addEventListener("click", () => {
+      const value = deadlineInput.value;
+      const nextDeadline = new Date(value);
+      if (isNaN(nextDeadline.getTime())) {
+        alert("유효한 날짜와 시간을 선택해주세요.");
+        return;
+      }
+      deadline = nextDeadline;
+      updateCountdown();
+      updateDeadlineInput();
+    });
+
+    function updateCountdown() {
+      const now = new Date();
+      const diff = deadline - now;
+      if (diff <= 0) {
+        countdownEl.textContent = "00일 00시간 00분 00초";
+        resultButton.disabled = false;
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      countdownEl.textContent = `${formatTime(days)}일 ${formatTime(hours)}시간 ${formatTime(minutes)}분 ${formatTime(seconds)}초`;
+      resultButton.disabled = true;
+    }
+
+    function showResultPopup(message) {
+      resultText.textContent = message;
+      createCelebration();
+      resultOverlay.classList.add("visible");
+    }
+
+    function hideResultPopup() {
+      resultOverlay.classList.remove("visible");
+    }
+
+    function showResults() {
+      const now = new Date();
+      if (now < deadline) return;
+
+      const votes = Object.entries(candidates);
+      const maxVotes = Math.max(...votes.map(([_, count]) => count));
+      const winners = votes.filter(([_, count]) => count === maxVotes).map(([name]) => name);
+      const winnerText = winners.length > 1 ? winners.join(", ") + " 공동 1위입니다!" : `${winners[0]}님이 당첨되었습니다!`;
+      showResultPopup(`축하합니다! ${winnerText}`);
+    }
+
+    closeOverlayButton.addEventListener("click", hideResultPopup);
+    resultOverlay.addEventListener("click", event => {
+      if (event.target === resultOverlay) hideResultPopup();
+    });
+    resultButton.addEventListener("click", showResults);
+    updateCountdown();
+    updateDeadlineInput();
+    setInterval(updateCountdown, 1000);
+
+    function changeVote(name, action) {
+      if (action === "vote") {
+        if (votedCandidate !== null) return;
+        candidates[name] = Math.max(0, candidates[name] + 1);
+        votedCandidate = name;
+      } else {
+        if (votedCandidate !== name) return;
+        candidates[name] = Math.max(0, candidates[name] - 1);
+        votedCandidate = null;
+      }
+      updateUI();
+    }
+
+    cards.forEach(card => {
+      card.querySelectorAll("button").forEach(button => {
+        button.addEventListener("click", () => {
+          const name = card.dataset.candidate;
+          const action = button.dataset.action;
+          if (action === "edit-name") {
+            editCandidateName(name, card);
+          } else if (action === "edit-image") {
+            requestImageUpload(card);
+          } else {
+            changeVote(name, action);
+          }
+        });
+      });
+    });
+
+    updateUI();
+  </script>
+</body>
+</html>
